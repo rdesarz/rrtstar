@@ -3,6 +3,9 @@ import typing
 import numpy as np
 from dataclasses import dataclass
 
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+
 
 class Parameters(typing.NamedTuple):
     max_nb_iterations: int
@@ -57,24 +60,55 @@ def is_in_obstacles_zones(new_sample: Point2d, obstacles_zones: typing.List[Zone
     return False
 
 
-def compute_nearest(new_sample: Point2d, graph: Graph) -> Point2d:
+def compute_nearest(new_sample: Point2d, graph: Graph) -> Vertex:
     min = 20000000.0
     min_element = None
     for vertex in graph.vertices:
         dist = np.linalg.norm(vertex.position.to_array() - new_sample.to_array())
         if dist < min:
             min = dist
-            min_element = vertex.position
+            min_element = vertex
 
     return min_element
 
 
+def apply_motion_model(nearest: Point2d, random: Point2d, dist: float) -> Point2d:
+    unit_vector = (random.to_array() - nearest.to_array())
+    unit_vector = unit_vector / np.linalg.norm(unit_vector)
+    new_position = nearest.to_array() + unit_vector * dist
+    return Point2d(new_position[0], new_position[1])
+
+
 def update_graph(env: Environment, start_position: Point2d, goal_position: Point2d, graph: Graph):
-    new_sample: Point2d = generate_new_sample(env.planification_zone)
-    if is_in_obstacles_zones(new_sample, env.obstacles_zones):
+    random_sample: Point2d = generate_new_sample(env.planification_zone)
+    if is_in_obstacles_zones(random_sample, env.obstacles_zones):
         return
 
-    nearest = compute_nearest(new_sample, graph)
+    nearest: Vertex = compute_nearest(random_sample, graph)
+    new_sample = apply_motion_model(nearest.position, random_sample, 0.3)
+
+    graph.vertices.append(Vertex(position=new_sample, connected=[]))
+    nearest.connected.append(graph.vertices[-1])
+
+
+def update_plot(env: Environment, start_position: Point2d, goal_position: Point2d, graph: Graph, axes: Axes):
+    axes.plot(start_position.x, start_position.y, '*')
+    axes.plot(goal_position.x, goal_position.y, '*')
+
+    visited = {graph.vertices[0]}
+    stack = [graph.vertices[0]]
+
+    while not len(stack) == 0:
+        vertex = stack.pop()
+
+        for neigh in vertex.connected:
+            if neigh not in visited:
+                x_values = [vertex.position.x, neigh.position.x]
+                y_values = [vertex.position.y, neigh.position.y]
+                plt.plot(x_values, y_values)
+
+                visited.add(neigh)
+                stack.append(neigh)
 
 
 def main():
@@ -90,11 +124,17 @@ def main():
     # Set parameters
     parameters = Parameters(max_nb_iterations=100)
 
-    graph = Graph()
+    graph = Graph(vertices=[Vertex(position=start_position, connected=[])])
+
+    plt.figure()
+    axes = plt.subplot()
 
     for iteration in range(0, parameters.max_nb_iterations):
-        update_graph(planification_zone, start_position, goal_position, graph)
-        plot_iteration(graph)
+        update_graph(environment, start_position, goal_position, graph)
+
+    update_plot(environment, start_position, goal_position, graph, axes)
+
+    plt.show()
 
 
 if __name__ == '__main__':
