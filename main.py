@@ -12,6 +12,9 @@ class Point2d(typing.NamedTuple):
     x: float
     y: float
 
+    def to_array(self) -> np.ndarray:
+        return np.array([self.x, self.y])
+
 
 class Zone2d(typing.NamedTuple):
     x_min: float
@@ -33,8 +36,15 @@ def plot_iteration(graph):
     pass
 
 
-# @dataclass
-# class Graph(typing.NamedTuple):
+@dataclass
+class Vertex:
+    position: Point2d
+    connected: typing.List
+
+
+@dataclass
+class Graph:
+    vertices: typing.List[Vertex]
 
 
 def generate_new_sample(planification_zone: Zone2d) -> Point2d:
@@ -43,8 +53,28 @@ def generate_new_sample(planification_zone: Zone2d) -> Point2d:
     return Point2d(x[0], y[0])
 
 
-def update_graph(planification_zone: Zone2d, start_position: Point2d, goal_position: Point2d, graph):
-    new_sample = generate_new_sample(planification_zone)
+def is_in_obstacles_zones(new_sample: Point2d, obstacles_zones: typing.List[Zone2d]) -> bool:
+    return False
+
+
+def compute_nearest(new_sample: Point2d, graph: Graph) -> Point2d:
+    min = 20000000.0
+    min_element = None
+    for vertex in graph.vertices:
+        dist = np.linalg.norm(vertex.position.to_array() - new_sample.to_array())
+        if dist < min:
+            min = dist
+            min_element = vertex.position
+
+    return min_element
+
+
+def update_graph(env: Environment, start_position: Point2d, goal_position: Point2d, graph: Graph):
+    new_sample: Point2d = generate_new_sample(env.planification_zone)
+    if is_in_obstacles_zones(new_sample, env.obstacles_zones):
+        return
+
+    nearest = compute_nearest(new_sample, graph)
 
 
 def main():
