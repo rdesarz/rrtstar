@@ -5,6 +5,7 @@ import numpy as np
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
+from matplotlib import patches
 from matplotlib.axes import Axes
 
 
@@ -29,9 +30,24 @@ class Zone2d(typing.NamedTuple):
     y_max: float
 
 
+class RectangleObstacle(typing.NamedTuple):
+    pos: Point2d
+    height: float
+    width: float
+
+    def collides(self, point: Point2d):
+        return (self.pos.x - self.width / 2.0 <= point.x <= self.pos.x + self.width / 2.0) and (
+                self.pos.y - self.height / 2.0 <= point.y <= self.pos.y + self.height / 2.0)
+
+    def plot(self, axes: Axes):
+        axes.add_patch(
+            patches.Rectangle(xy=(self.pos.x - self.width / 2.0, self.pos.y - self.height / 2.0), height=self.height,
+                              width=self.width))
+
+
 class Environment(typing.NamedTuple):
     planification_zone: Zone2d
-    obstacles_zones: typing.List[Zone2d]
+    obstacles: typing.List[RectangleObstacle]
 
 
 class Path(typing.NamedTuple):
@@ -87,8 +103,8 @@ def line_steering_policy(nearest: Point2d, random: Point2d, dist: float) -> Poin
     return Point2d(new_position[0], new_position[1])
 
 
-def in_obstacles_zones(new_sample: Point2d, obstacles_zones: typing.List[Zone2d]) -> bool:
-    return False
+def in_obstacles_zones(new_sample: Point2d, obstacles: typing.List[RectangleObstacle]) -> bool:
+    return any(obstacle.collides(new_sample) for obstacle in obstacles)
 
 
 def update(env: Environment, params: Parameters, goal: Point2d,
@@ -97,11 +113,11 @@ def update(env: Environment, params: Parameters, goal: Point2d,
            sample_generation_policy: typing.Callable[[], Point2d], tree: Tree) -> bool:
     random_sample: Point2d = sample_generation_policy()
 
-    if in_obstacles_zones(random_sample, env.obstacles_zones):
-        return False
-
     nearest: Vertex = nearest_policy(random_sample, tree)
     new_sample = steering_policy(nearest.position, random_sample)
+
+    if in_obstacles_zones(new_sample, env.obstacles):
+        return False
 
     tree.vertices.append(Vertex(position=new_sample, parent=nearest))
 
@@ -115,6 +131,10 @@ def update_plot(env: Environment, start: Point2d, goal: Point2d, tree: Tree, axe
     # Plot start and goal
     axes.plot(start.x, start.y, '*')
     axes.plot(goal.x, goal.y, '*')
+
+    # Plot obstacles
+    for obstacle in env.obstacles:
+        obstacle.plot(axes)
 
     # Plot graph using BFS
     for vertex in tree.vertices:
@@ -134,15 +154,16 @@ def update_plot(env: Environment, start: Point2d, goal: Point2d, tree: Tree, axe
 def main():
     # Initialize environment
     planification_zone = Zone2d(x_min=0.0, x_max=10.0, y_min=0.0, y_max=10.0)
-    obstacles_zones = []
-    environment = Environment(planification_zone=planification_zone, obstacles_zones=obstacles_zones)
+    obstacles = [RectangleObstacle(pos=Point2d(x=5.0, y=4.0), width=1.0, height=1.0),
+                 RectangleObstacle(pos=Point2d(x=6.5, y=5.5), width=1.0, height=1.0)]
+    environment = Environment(planification_zone=planification_zone, obstacles=obstacles)
 
     # Set start and goal position
     start = Point2d(x=2.0, y=2.0)
     goal = Point2d(x=8.0, y=6.0)
 
     # Set parameters
-    parameters = Parameters(max_nb_iterations=500, expand_dist=0.1, goal_sample_rate=20)
+    parameters = Parameters(max_nb_iterations=500, expand_dist=0.2, goal_sample_rate=20)
 
     tree = Tree(vertices=[Vertex(position=start, parent=None)])
 
