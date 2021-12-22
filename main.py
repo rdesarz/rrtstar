@@ -1,4 +1,5 @@
 import typing
+import random
 
 import numpy as np
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from matplotlib.axes import Axes
 class Parameters(typing.NamedTuple):
     max_nb_iterations: int
     expand_dist: float
+    goal_sample_rate: int
 
 
 class Point2d(typing.NamedTuple):
@@ -39,16 +41,16 @@ class Path(typing.NamedTuple):
 @dataclass
 class Vertex:
     position: Point2d
-    connected: typing.List
+    parent: typing.Optional['Vertex']
 
 
 @dataclass
-class Graph:
+class Tree:
     vertices: typing.List[Vertex]
 
 
 # Nearest vertex computation policies
-def compute_nearest_euclidian_distance(new_sample: Point2d, graph: Graph) -> Vertex:
+def compute_nearest_euclidian_distance(new_sample: Point2d, graph: Tree) -> Vertex:
     norms = [np.linalg.norm(vertex.position.to_array() - new_sample.to_array()) for vertex in graph.vertices]
 
     return graph.vertices[norms.index(min(norms))]
@@ -66,6 +68,17 @@ def generate_new_sample_biased(goal: Point2d) -> Point2d:
     return Point2d(x, y)
 
 
+def generate_new_sample_biased_towards_goal(planification_zone: Zone2d, goal: Point2d,
+                                            goal_sample_rate: int) -> Point2d:
+    # There is a probability to generate a sample that is the goal. Therefore, the tree is biased to grow towards the goal.
+    if random.randint(0, 100) > goal_sample_rate:
+        return Point2d(
+            random.uniform(planification_zone.x_min, planification_zone.x_max),
+            random.uniform(planification_zone.y_min, planification_zone.y_max))
+    else:
+        return Point2d(goal.x, goal.y)
+
+
 # Steering policies
 def line_steering_policy(nearest: Point2d, random: Point2d, dist: float) -> Point2d:
     unit_vector = (random.to_array() - nearest.to_array())
@@ -78,39 +91,44 @@ def in_obstacles_zones(new_sample: Point2d, obstacles_zones: typing.List[Zone2d]
     return False
 
 
-def update(env: Environment, goal_position: Point2d, steering_policy: typing.Callable[[Point2d, Point2d], Point2d],
-           nearest_policy: typing.Callable[[Point2d, Graph], Vertex],
-           sample_generation_policy: typing.Callable[[], Point2d], graph: Graph):
+def update(env: Environment, params: Parameters, goal: Point2d,
+           steering_policy: typing.Callable[[Point2d, Point2d], Point2d],
+           nearest_policy: typing.Callable[[Point2d, Tree], Vertex],
+           sample_generation_policy: typing.Callable[[], Point2d], tree: Tree) -> bool:
     random_sample: Point2d = sample_generation_policy()
 
     if in_obstacles_zones(random_sample, env.obstacles_zones):
-        return
+        return False
 
-    nearest: Vertex = nearest_policy(random_sample, graph)
+    nearest: Vertex = nearest_policy(random_sample, tree)
     new_sample = steering_policy(nearest.position, random_sample)
 
-    graph.vertices.append(Vertex(position=new_sample, connected=[]))
-    nearest.connected.append(graph.vertices[-1])
+    tree.vertices.append(Vertex(position=new_sample, parent=nearest))
+
+    if np.linalg.norm(new_sample.to_array() - goal) < params.expand_dist:
+        return True
+
+    return False
 
 
-def update_plot(env: Environment, start_position: Point2d, goal_position: Point2d, graph: Graph, axes: Axes):
-    axes.plot(start_position.x, start_position.y, '*')
-    axes.plot(goal_position.x, goal_position.y, '*')
+def update_plot(env: Environment, start: Point2d, goal: Point2d, tree: Tree, axes: Axes):
+    # Plot start and goal
+    axes.plot(start.x, start.y, '*')
+    axes.plot(goal.x, goal.y, '*')
 
     # Plot graph using BFS
-    visited = [graph.vertices[0]]
-    stack = [graph.vertices[0]]
-    while not len(stack) == 0:
-        vertex = stack.pop()
+    for vertex in tree.vertices:
+        if vertex.parent:
+            x_values = [vertex.position.x, vertex.parent.position.x]
+            y_values = [vertex.position.y, vertex.parent.position.y]
+            plt.plot(x_values, y_values, 'b')
 
-        for neigh in vertex.connected:
-            if neigh not in visited:
-                x_values = [vertex.position.x, neigh.position.x]
-                y_values = [vertex.position.y, neigh.position.y]
-                plt.plot(x_values, y_values, 'b')
-
-                visited.append(neigh)
-                stack.append(neigh)
+    current = tree.vertices[-1]
+    while current.parent:
+        x_values = [current.position.x, current.parent.position.x]
+        y_values = [current.position.y, current.parent.position.y]
+        plt.plot(x_values, y_values, 'r')
+        current = current.parent
 
 
 def main():
@@ -124,9 +142,9 @@ def main():
     goal = Point2d(x=8.0, y=6.0)
 
     # Set parameters
-    parameters = Parameters(max_nb_iterations=1000, expand_dist=0.3)
+    parameters = Parameters(max_nb_iterations=500, expand_dist=0.1, goal_sample_rate=20)
 
-    graph = Graph(vertices=[Vertex(position=start, connected=[])])
+    tree = Tree(vertices=[Vertex(position=start, parent=None)])
 
     plt.figure()
     axes = plt.subplot()
@@ -134,16 +152,18 @@ def main():
     def steering_policy(nearest, random):
         return line_steering_policy(nearest, random, parameters.expand_dist)
 
-    def nearest_policy(new, graph):
-        return compute_nearest_euclidian_distance(new, graph)
+    def nearest_policy(new, tree):
+        return compute_nearest_euclidian_distance(new, tree)
 
     def sample_generation_policy():
-        return generate_new_sample_biased(goal)
+        return generate_new_sample_biased_towards_goal(environment.planification_zone, goal,
+                                                       parameters.goal_sample_rate)
 
     for iteration in range(0, parameters.max_nb_iterations):
-        update(environment, goal, steering_policy, nearest_policy, sample_generation_policy, graph)
+        if update(environment, parameters, goal, steering_policy, nearest_policy, sample_generation_policy, tree):
+            break
 
-    update_plot(environment, start, goal, graph, axes)
+    update_plot(environment, start, goal, tree, axes)
 
     plt.show()
 

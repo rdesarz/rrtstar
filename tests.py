@@ -9,8 +9,8 @@ class MyTestCase(unittest.TestCase):
         print(point)
 
     def test_compute_nearest(self):
-        graph = main.Graph(vertices=[main.Vertex(position=main.Point2d(x=2.0, y=2.0), connected=[]),
-                                     main.Vertex(position=main.Point2d(x=3.0, y=3.0), connected=[])])
+        graph = main.Tree(vertices=[main.Vertex(position=main.Point2d(x=2.0, y=2.0), connected=[]),
+                                    main.Vertex(position=main.Point2d(x=3.0, y=3.0), connected=[])])
         point = main.Point2d(x=3.0, y=3.0)
 
         nearest = main.compute_nearest_euclidian_distance(point, graph)
