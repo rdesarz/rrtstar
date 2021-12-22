@@ -61,7 +61,7 @@ def generate_new_sample_uniform(planification_zone: Zone2d) -> Point2d:
     return Point2d(x[0], y[0])
 
 
-def generate_new_sample_biased(planification_zone: Zone2d, goal: Point2d) -> Point2d:
+def generate_new_sample_biased(goal: Point2d) -> Point2d:
     x, y = np.random.multivariate_normal(goal.to_array(), [[10, 0], [0, 10]]).T
     return Point2d(x, y)
 
@@ -78,10 +78,10 @@ def in_obstacles_zones(new_sample: Point2d, obstacles_zones: typing.List[Zone2d]
     return False
 
 
-def update(env: Environment, start_position: Point2d, goal_position: Point2d,
-           steering_policy: typing.Callable[[Point2d, Point2d], Point2d],
-           nearest_policy: typing.Callable[[Point2d, Graph], Vertex], graph: Graph):
-    random_sample: Point2d = generate_new_sample_biased(env.planification_zone, goal_position)
+def update(env: Environment, goal_position: Point2d, steering_policy: typing.Callable[[Point2d, Point2d], Point2d],
+           nearest_policy: typing.Callable[[Point2d, Graph], Vertex],
+           sample_generation_policy: typing.Callable[[], Point2d], graph: Graph):
+    random_sample: Point2d = sample_generation_policy()
 
     if in_obstacles_zones(random_sample, env.obstacles_zones):
         return
@@ -120,13 +120,13 @@ def main():
     environment = Environment(planification_zone=planification_zone, obstacles_zones=obstacles_zones)
 
     # Set start and goal position
-    start_position = Point2d(x=2.0, y=2.0)
-    goal_position = Point2d(x=8.0, y=6.0)
+    start = Point2d(x=2.0, y=2.0)
+    goal = Point2d(x=8.0, y=6.0)
 
     # Set parameters
     parameters = Parameters(max_nb_iterations=1000, expand_dist=0.3)
 
-    graph = Graph(vertices=[Vertex(position=start_position, connected=[])])
+    graph = Graph(vertices=[Vertex(position=start, connected=[])])
 
     plt.figure()
     axes = plt.subplot()
@@ -137,10 +137,13 @@ def main():
     def nearest_policy(new, graph):
         return compute_nearest_euclidian_distance(new, graph)
 
-    for iteration in range(0, parameters.max_nb_iterations):
-        update(environment, start_position, goal_position, steering_policy, nearest_policy, graph)
+    def sample_generation_policy():
+        return generate_new_sample_biased(goal)
 
-    update_plot(environment, start_position, goal_position, graph, axes)
+    for iteration in range(0, parameters.max_nb_iterations):
+        update(environment, goal, steering_policy, nearest_policy, sample_generation_policy, graph)
+
+    update_plot(environment, start, goal, graph, axes)
 
     plt.show()
 
