@@ -13,7 +13,7 @@ class MyTestCase(unittest.TestCase):
                                      main.Vertex(position=main.Point2d(x=3.0, y=3.0), connected=[])])
         point = main.Point2d(x=3.0, y=3.0)
 
-        nearest = main.compute_nearest(point, graph)
+        nearest = main.compute_nearest_euclidian_distance(point, graph)
 
         self.assertEqual(nearest, graph.vertices[1].position)
 
