@@ -1,5 +1,6 @@
 import typing
 import random
+from itertools import product, chain
 
 import numpy as np
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ class Parameters(typing.NamedTuple):
     max_nb_iterations: int
     expand_dist: float
     goal_sample_rate: int
+    path_sampling_step: float
 
 
 class Point2d(typing.NamedTuple):
@@ -58,6 +60,7 @@ class Path(typing.NamedTuple):
 class Vertex:
     position: Point2d
     parent: typing.Optional['Vertex']
+    path: typing.List[Point2d]
 
 
 @dataclass
@@ -96,32 +99,41 @@ def generate_new_sample_biased_towards_goal(planification_zone: Zone2d, goal: Po
 
 
 # Steering policies
-def line_steering_policy(nearest: Point2d, random: Point2d, dist: float) -> Point2d:
+def line_steering_policy(nearest: Point2d, random: Point2d, dist: float, step: float) -> Vertex:
     unit_vector = (random.to_array() - nearest.to_array())
     unit_vector = unit_vector / np.linalg.norm(unit_vector)
+
+    path: typing.List[Point2d] = [
+        Point2d(nearest.to_array()[0] + unit_vector[0] * alpha, nearest.to_array()[1] + unit_vector[1] * alpha) for
+        alpha in
+        np.arange(start=0, stop=dist, step=step)]
+
     new_position = nearest.to_array() + unit_vector * dist
-    return Point2d(new_position[0], new_position[1])
+
+    return Vertex(position=Point2d(new_position[0], new_position[1]), path=path, parent=None)
 
 
-def in_obstacles_zones(new_sample: Point2d, obstacles: typing.List[RectangleObstacle]) -> bool:
-    return any(obstacle.collides(new_sample) for obstacle in obstacles)
+def check_collision(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> bool:
+    return any(obstacle.collides(path_point) for obstacle, path_point in
+               product(obstacles, chain(new_vertex.path, [new_vertex.position])))
 
 
 def update(env: Environment, params: Parameters, goal: Point2d,
-           steering_policy: typing.Callable[[Point2d, Point2d], Point2d],
+           steering_policy: typing.Callable[[Point2d, Point2d], Vertex],
            nearest_policy: typing.Callable[[Point2d, Tree], Vertex],
            sample_generation_policy: typing.Callable[[], Point2d], tree: Tree) -> bool:
     random_sample: Point2d = sample_generation_policy()
 
-    nearest: Vertex = nearest_policy(random_sample, tree)
-    new_sample = steering_policy(nearest.position, random_sample)
+    nearest_vertex: Vertex = nearest_policy(random_sample, tree)
+    new_vertex: Vertex = steering_policy(nearest_vertex.position, random_sample)
 
-    if in_obstacles_zones(new_sample, env.obstacles):
+    if check_collision(new_vertex, env.obstacles):
         return False
 
-    tree.vertices.append(Vertex(position=new_sample, parent=nearest))
+    new_vertex.parent = nearest_vertex
+    tree.vertices.append(new_vertex)
 
-    if np.linalg.norm(new_sample.to_array() - goal) < params.expand_dist:
+    if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
         return True
 
     return False
@@ -139,15 +151,14 @@ def update_plot(env: Environment, start: Point2d, goal: Point2d, tree: Tree, axe
     # Plot graph using BFS
     for vertex in tree.vertices:
         if vertex.parent:
-            x_values = [vertex.position.x, vertex.parent.position.x]
-            y_values = [vertex.position.y, vertex.parent.position.y]
-            plt.plot(x_values, y_values, 'b')
+            plt.plot([point.x for point in vertex.path], [point.y for point in vertex.path], 'b-')
+            plt.plot(vertex.position.x, vertex.position.y, '*b')
 
     current = tree.vertices[-1]
     while current.parent:
-        x_values = [current.position.x, current.parent.position.x]
-        y_values = [current.position.y, current.parent.position.y]
-        plt.plot(x_values, y_values, 'r')
+        plt.plot([point.x for point in current.path], [point.y for point in current.path], 'r-')
+        plt.plot(current.position.x, current.position.y, '*r')
+
         current = current.parent
 
 
@@ -163,15 +174,15 @@ def main():
     goal = Point2d(x=8.0, y=6.0)
 
     # Set parameters
-    parameters = Parameters(max_nb_iterations=500, expand_dist=0.2, goal_sample_rate=20)
+    parameters = Parameters(max_nb_iterations=500, expand_dist=0.2, goal_sample_rate=20, path_sampling_step=0.05)
 
-    tree = Tree(vertices=[Vertex(position=start, parent=None)])
+    tree = Tree(vertices=[Vertex(position=start, parent=None, path=[])])
 
     plt.figure()
     axes = plt.subplot()
 
     def steering_policy(nearest, random):
-        return line_steering_policy(nearest, random, parameters.expand_dist)
+        return line_steering_policy(nearest, random, parameters.expand_dist, parameters.path_sampling_step)
 
     def nearest_policy(new, tree):
         return compute_nearest_euclidian_distance(new, tree)
