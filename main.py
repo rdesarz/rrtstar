@@ -106,7 +106,7 @@ def line_steering_policy(nearest: Point2d, random: Point2d, dist: float, step: f
     path: typing.List[Point2d] = [
         Point2d(nearest.to_array()[0] + unit_vector[0] * alpha, nearest.to_array()[1] + unit_vector[1] * alpha) for
         alpha in
-        np.arange(start=0, stop=dist, step=step)]
+        np.arange(start=0, stop=dist+step, step=step)]
 
     new_position = nearest.to_array() + unit_vector * dist
 
