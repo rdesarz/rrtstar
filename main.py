@@ -62,12 +62,12 @@ class Vertex:
     position: Point2d
     parent: typing.Optional['Vertex']
     path: typing.List[Point2d]
-
+    cost: float
 
 @dataclass
 class Tree:
     vertices: typing.List[Vertex]
-
+        
 
 # Nearest vertex computation policies
 def compute_nearest_euclidian_distance(new_sample: Point2d, graph: Tree) -> Vertex:
@@ -102,7 +102,8 @@ def generate_new_sample_biased_towards_goal(planification_zone: Zone2d, goal: Po
 # Steering policies
 def line_steering_policy(nearest: Point2d, random: Point2d, dist: float, step: float) -> Vertex:
     unit_vector = (random.to_array() - nearest.to_array())
-    unit_vector = unit_vector / np.linalg.norm(unit_vector)
+    dist_to_random =  np.linalg.norm(unit_vector)
+    unit_vector = unit_vector / dist_to_random 
 
     path: typing.List[Point2d] = [
         Point2d(nearest.to_array()[0] + unit_vector[0] * alpha, nearest.to_array()[1] + unit_vector[1] * alpha) for
@@ -111,7 +112,9 @@ def line_steering_policy(nearest: Point2d, random: Point2d, dist: float, step: f
 
     new_position = nearest.to_array() + unit_vector * dist
 
-    return Vertex(position=Point2d(new_position[0], new_position[1]), path=path, parent=None)
+    cost = nearest.cost + dist 
+
+    return Vertex(position=Point2d(new_position[0], new_position[1]), path=path, parent=None, cost=cost)
 
 
 def collides(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> bool:
@@ -139,8 +142,8 @@ def update(env: Environment, params: Parameters, goal: Point2d,
         return False
 
     near_vertices = near(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
+    
     tree.vertices.append(new_vertex)
-
     new_vertex.parent = nearest_vertex
 
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
