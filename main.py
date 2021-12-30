@@ -1,3 +1,4 @@
+import math
 import typing
 import random
 from itertools import product, chain
@@ -106,16 +107,24 @@ def line_steering_policy(nearest: Point2d, random: Point2d, dist: float, step: f
     path: typing.List[Point2d] = [
         Point2d(nearest.to_array()[0] + unit_vector[0] * alpha, nearest.to_array()[1] + unit_vector[1] * alpha) for
         alpha in
-        np.arange(start=0, stop=dist+step, step=step)]
+        np.arange(start=0, stop=dist + step, step=step)]
 
     new_position = nearest.to_array() + unit_vector * dist
 
     return Vertex(position=Point2d(new_position[0], new_position[1]), path=path, parent=None)
 
 
-def check_collision(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> bool:
+def collides(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> bool:
     return any(obstacle.collides(path_point) for obstacle, path_point in
                product(obstacles, chain(new_vertex.path, [new_vertex.position])))
+
+
+def near(tree: Tree, new_vertex: Vertex, expand_dist: float, near_dist: float) -> typing.List[Vertex]:
+    n_vertices = len(tree.vertices)
+    dist_range = min(near_dist * math.sqrt(math.log(n_vertices) / n_vertices), expand_dist)
+
+    return [vertex for vertex in tree.vertices if
+            np.linalg.norm(vertex.position.to_array() - new_vertex.position.to_array()) < dist_range]
 
 
 def update(env: Environment, params: Parameters, goal: Point2d,
@@ -123,15 +132,16 @@ def update(env: Environment, params: Parameters, goal: Point2d,
            nearest_policy: typing.Callable[[Point2d, Tree], Vertex],
            sample_generation_policy: typing.Callable[[], Point2d], tree: Tree) -> bool:
     random_sample: Point2d = sample_generation_policy()
-
     nearest_vertex: Vertex = nearest_policy(random_sample, tree)
     new_vertex: Vertex = steering_policy(nearest_vertex.position, random_sample)
 
-    if check_collision(new_vertex, env.obstacles):
+    if collides(new_vertex, env.obstacles):
         return False
 
-    new_vertex.parent = nearest_vertex
+    near_vertices = near(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
     tree.vertices.append(new_vertex)
+
+    new_vertex.parent = nearest_vertex
 
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
         return True
