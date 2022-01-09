@@ -65,10 +65,17 @@ class Path(typing.NamedTuple):
 
 
 @dataclass
+class Trajectory:
+    path: typing.List[Point2d]
+    steering_input: typing.List[float]
+    time: float
+
+
+@dataclass
 class Vertex:
     position: Point2d
     parent: typing.Optional["Vertex"]
-    path: typing.List[Point2d]
+    trajectory: Trajectory
     cost: float
 
 
@@ -114,39 +121,45 @@ def generate_new_sample_biased_towards_goal(
 
 
 # Steering policies
-def line_steering_policy(
-    nearest: Point2d, random: Point2d, dist: float, step: float
-) -> Vertex:
-    unit_vector = random.to_array() - nearest.to_array()
-    dist_to_random = np.linalg.norm(unit_vector)
-    unit_vector = unit_vector / dist_to_random
+def constant_speed_line_steering_policy(
+    start: Vertex, dest: Point2d, time: float, velocity: float
+) -> typing.Tuple[float, Trajectory]:
+    unit_vector = dest.to_array() - start.to_array()
+    dist = np.linalg.norm(unit_vector)
+    unit_vector = unit_vector / dist
 
-    path: typing.List[Point2d] = [
-        Point2d(
-            nearest.to_array()[0] + unit_vector[0] * alpha,
-            nearest.to_array()[1] + unit_vector[1] * alpha,
-        )
-        for alpha in np.arange(start=0, stop=dist + step, step=step)
-    ]
+    step = 0.05  # [s]
+    timesteps = np.arange(start=0.0, stop=time + step, step=step)
 
-    new_position = nearest.to_array() + unit_vector * dist
+    # Steer to the destination
+    path = []
+    timesteps = []
+    for timestep in np.arange(start=0.0, stop=time + step, step=step):
+        if velocity * timestep < dist:
+            path.append(
+                Point2d(
+                    start.to_array()[0] + unit_vector[0] * velocity * timestep,
+                    start.to_array()[1] + unit_vector[1] * velocity * timestep,
+                )
+            )
 
-    cost = nearest.cost + dist
+            timesteps.append(timestep)
+        else:
+            path.append(dest)
+            timesteps.append(timestep)
 
-    return Vertex(
-        position=Point2d(new_position[0], new_position[1]),
-        path=path,
-        parent=None,
-        cost=cost,
-    )
+    # Generate trajectory. Time is equivalent to the steering input
+    trajectory = Trajectory(path=path, steering_input=timesteps, time=timesteps[-1])
+
+    cost = start.cost + dist
+
+    return cost, trajectory
 
 
-def collides(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> bool:
+def collides(trajectory: Trajectory, obstacles: typing.List[RectangleObstacle]) -> bool:
     return any(
         obstacle.collides(path_point)
-        for obstacle, path_point in product(
-            obstacles, chain(new_vertex.path, [new_vertex.position])
-        )
+        for obstacle, path_point in product(obstacles, trajectory.path)
     )
 
 
@@ -180,26 +193,30 @@ def update(
     env: Environment,
     params: Parameters,
     goal: Point2d,
-    steering_policy: typing.Callable[[Point2d, Point2d], Vertex],
+    steering_policy: typing.Callable[
+        [Vertex, Point2d], typing.Tuple[float, Trajectory]
+    ],
     nearest_policy: typing.Callable[[Point2d, Tree], Vertex],
     sample_generation_policy: typing.Callable[[], Point2d],
     tree: Tree,
 ) -> bool:
     # Generate new sample
-    random_sample: Point2d = sample_generation_policy()
+    new_sample: Point2d = sample_generation_policy()
 
     # Find the nearest vertex
-    nearest_vertex: Vertex = nearest_policy(random_sample, tree)
+    nearest_vertex: Vertex = nearest_policy(new_sample, tree)
 
     # Steer to random position and get trajectory
-    new_vertex: Vertex = steering_policy(nearest_vertex.position, random_sample)
+    cost_new, traj_new = steering_policy(nearest_vertex, new_sample)
 
     # Check generated trajectory
-    if collides(new_vertex, env.obstacles):
+    if collides(traj_new, env.obstacles):
         return False
 
     # Add new vertex to tree
-    tree.vertices.append(new_vertex)
+    tree.vertices.append(
+        Vertex(position=new_sample, parent=None, trajectory=traj_new, cost=cost_new)
+    )
     near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
 
     # Find the most optimal parent for new vertex
@@ -283,8 +300,8 @@ def main():
     axes = plt.subplot()
 
     def steering_policy(nearest, random):
-        return line_steering_policy(
-            nearest, random, parameters.expand_dist, parameters.path_sampling_step
+        return constant_speed_line_steering_policy(
+            nearest, random, parameters.time_to_steer, parameters.velocity
         )
 
     def nearest_policy(new, tree):
