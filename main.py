@@ -1,7 +1,7 @@
 import math
 import typing
 import random
-from itertools import product, chain
+from itertools import product
 import sys
 
 import numpy as np
