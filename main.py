@@ -150,7 +150,7 @@ def collides(new_vertex: Vertex, obstacles: typing.List[RectangleObstacle]) -> b
     )
 
 
-def near(
+def find_near_vertices(
     tree: Tree, new_vertex: Vertex, expand_dist: float, near_dist: float
 ) -> typing.List[Vertex]:
     n_vertices = len(tree.vertices)
@@ -166,6 +166,16 @@ def near(
     ]
 
 
+def find_optimal_parent(
+    new_vertex: Vertex, near_vertices: typing.List[Vertex]
+) -> typing.Tuple[Vertex, float]:
+    pass
+
+
+def rewire(tree: Tree, new_vertex: Vertex, near_vertices: typing.List[Vertex]):
+    pass
+
+
 def update(
     env: Environment,
     params: Parameters,
@@ -175,19 +185,36 @@ def update(
     sample_generation_policy: typing.Callable[[], Point2d],
     tree: Tree,
 ) -> bool:
+    # Generate new sample
     random_sample: Point2d = sample_generation_policy()
+
+    # Find the nearest vertex
     nearest_vertex: Vertex = nearest_policy(random_sample, tree)
+
+    # Steer to random position and get trajectory
     new_vertex: Vertex = steering_policy(nearest_vertex.position, random_sample)
 
+    # Check generated trajectory
     if collides(new_vertex, env.obstacles):
         return False
 
-    near_vertices = near(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
-
-
+    # Add new vertex to tree
     tree.vertices.append(new_vertex)
-    new_vertex.parent = nearest_vertex
+    near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
 
+    # Find the most optimal parent for new vertex
+    optimal_vertex, cost_optimal = find_optimal_parent(new_vertex, near_vertices)
+
+    # Connect new vertex with its parent
+    new_vertex.parent = optimal_vertex
+
+    # Remove parent (optimal vertex) from near vertices
+    near_vertices.remove(optimal_vertex)
+
+    # Rewire if required
+    rewire(tree, new_vertex, near_vertices)
+
+    # Check if goal is reached
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
         return True
 
