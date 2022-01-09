@@ -201,8 +201,22 @@ def find_optimal_parent(
     return cost_min, vertex_min
 
 
-def rewire(tree: Tree, new_vertex: Vertex, near_vertices: typing.List[Vertex]):
-    pass
+def rewire(
+    tree: Tree,
+    new_vertex: Vertex,
+    near_vertices: typing.List[Vertex],
+    steering_policy,
+    obstacles: typing.List[RectangleObstacle],
+):
+    for near_vertex in near_vertices:
+        cost_to_near, traj_to_near = steering_policy(new_vertex, near_vertex.position)
+        if (
+            not collides(trajectory=traj_to_near, obstacles=obstacles)
+            and traj_to_near.path[-1] == near_vertex.position
+            and new_vertex.cost + cost_to_near < near_vertex.cost
+        ):
+            near_vertex.parent = new_vertex
+            near_vertex.cost = new_vertex.cost + cost_to_near
 
 
 def update(
@@ -274,8 +288,8 @@ def update_plot(
     for vertex in tree.vertices:
         if vertex.parent:
             plt.plot(
-                [point.x for point in vertex.path],
-                [point.y for point in vertex.path],
+                [point.x for point in vertex.trajectory.path],
+                [point.y for point in vertex.trajectory.path],
                 "b-",
             )
             plt.plot(vertex.position.x, vertex.position.y, "*b")
@@ -283,8 +297,8 @@ def update_plot(
     current = tree.vertices[-1]
     while current.parent:
         plt.plot(
-            [point.x for point in current.path],
-            [point.y for point in current.path],
+            [point.x for point in current.trajectory.path],
+            [point.y for point in current.trajectory.path],
             "r-",
         )
         plt.plot(current.position.x, current.position.y, "*r")
@@ -315,7 +329,7 @@ def main():
         path_sampling_step=0.05,
     )
 
-    tree = Tree(vertices=[Vertex(position=start, parent=None, path=[])])
+    tree = Tree(vertices=[Vertex(position=start, parent=None, trajectory=[])])
 
     plt.figure()
     axes = plt.subplot()
