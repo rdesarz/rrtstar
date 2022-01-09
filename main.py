@@ -2,6 +2,7 @@ import math
 import typing
 import random
 from itertools import product, chain
+import sys
 
 import numpy as np
 from dataclasses import dataclass
@@ -180,9 +181,24 @@ def find_near_vertices(
 
 
 def find_optimal_parent(
-    new_vertex: Vertex, near_vertices: typing.List[Vertex]
-) -> typing.Tuple[Vertex, float]:
-    pass
+    new_vertex: Vertex,
+    near_vertices: typing.List[Vertex],
+    steering_policy,
+    obstacles: typing.List[RectangleObstacle],
+) -> typing.Tuple[float, typing.Optional[Vertex]]:
+    cost_min = sys.float_info.max
+    vertex_min = None
+    for near_vertex in near_vertices:
+        cost_to_new, traj_to_new = steering_policy(near_vertex, new_vertex.position)
+        if (
+            not collides(trajectory=traj_to_new, obstacles=obstacles)
+            and traj_to_new.path[-1] == near_vertex.position
+        ):
+            if near_vertex.cost + cost_to_new < cost_min:
+                cost_min = near_vertex.cost + cost_to_new
+                vertex_min = near_vertex
+
+    return cost_min, vertex_min
 
 
 def rewire(tree: Tree, new_vertex: Vertex, near_vertices: typing.List[Vertex]):
@@ -207,20 +223,25 @@ def update(
     nearest_vertex: Vertex = nearest_policy(new_sample, tree)
 
     # Steer to random position and get trajectory
-    cost_new, traj_new = steering_policy(nearest_vertex, new_sample)
+    cost_to_new, traj_to_new = steering_policy(nearest_vertex, new_sample)
 
     # Check generated trajectory
-    if collides(traj_new, env.obstacles):
+    if collides(traj_to_new, env.obstacles):
         return False
 
     # Add new vertex to tree
-    tree.vertices.append(
-        Vertex(position=new_sample, parent=None, trajectory=traj_new, cost=cost_new)
+    new_vertex = Vertex(
+        position=new_sample, parent=None, trajectory=traj_to_new, cost=cost_to_new
     )
+    tree.vertices.append(new_vertex)
+
+    # Get all vertices near new vertex
     near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
 
     # Find the most optimal parent for new vertex
-    optimal_vertex, cost_optimal = find_optimal_parent(new_vertex, near_vertices)
+    cost, optimal_vertex = find_optimal_parent(
+        new_vertex, near_vertices, steering_policy, env.obstacles
+    )
 
     # Connect new vertex with its parent
     new_vertex.parent = optimal_vertex
