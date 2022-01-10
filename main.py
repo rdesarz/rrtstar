@@ -11,12 +11,15 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 from matplotlib.axes import Axes
 
+import pdb
 
 class Parameters(typing.NamedTuple):
     max_nb_iterations: int
     expand_dist: float
     goal_sample_rate: int
     path_sampling_step: float
+    time_to_steer: float
+    velocity: float
 
 
 class Point2d(typing.NamedTuple):
@@ -75,9 +78,9 @@ class Trajectory:
 @dataclass
 class Vertex:
     position: Point2d
-    parent: typing.Optional["Vertex"]
     trajectory: Trajectory
-    cost: float
+    parent: typing.Optional["Vertex"] = None
+    cost: float = 0.0
 
 
 @dataclass
@@ -125,9 +128,9 @@ def generate_new_sample_biased_towards_goal(
 def constant_speed_line_steering_policy(
     start: Vertex, dest: Point2d, time: float, velocity: float
 ) -> typing.Tuple[float, Trajectory]:
-    unit_vector = dest.to_array() - start.to_array()
-    dist = np.linalg.norm(unit_vector)
-    unit_vector = unit_vector / dist
+    unit_vector = dest.to_array() - start.position.to_array()
+    norm_vec = np.linalg.norm(unit_vector)
+    unit_vector = unit_vector / norm_vec
 
     step = 0.05  # [s]
     timesteps = np.arange(start=0.0, stop=time + step, step=step)
@@ -136,11 +139,11 @@ def constant_speed_line_steering_policy(
     path = []
     timesteps = []
     for timestep in np.arange(start=0.0, stop=time + step, step=step):
-        if velocity * timestep < dist:
+        if velocity * timestep < norm_vec:
             path.append(
                 Point2d(
-                    start.to_array()[0] + unit_vector[0] * velocity * timestep,
-                    start.to_array()[1] + unit_vector[1] * velocity * timestep,
+                    start.position.to_array()[0] + unit_vector[0] * velocity * timestep,
+                    start.position.to_array()[1] + unit_vector[1] * velocity * timestep,
                 )
             )
 
@@ -152,7 +155,7 @@ def constant_speed_line_steering_policy(
     # Generate trajectory. Time is equivalent to the steering input
     trajectory = Trajectory(path=path, steering_input=timesteps, time=timesteps[-1])
 
-    cost = start.cost + dist
+    cost = start.cost + np.linalg.norm(path[-1].to_array() - path[0].to_array())
 
     return cost, trajectory
 
@@ -245,12 +248,12 @@ def update(
 
     # Add new vertex to tree
     new_vertex = Vertex(
-        position=new_sample, parent=None, trajectory=traj_to_new, cost=cost_to_new
+        position=traj_to_new.path[-1], parent=None, trajectory=traj_to_new, cost=cost_to_new
     )
     tree.vertices.append(new_vertex)
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=0.2)
+    near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=2.0)
 
     # Find the most optimal parent for new vertex
     cost, optimal_vertex = find_optimal_parent(
@@ -264,7 +267,7 @@ def update(
     near_vertices.remove(optimal_vertex)
 
     # Rewire if required
-    rewire(tree, new_vertex, near_vertices)
+    rewire(tree, new_vertex, near_vertices, steering_policy, env.obstacles)
 
     # Check if goal is reached
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
@@ -327,9 +330,11 @@ def main():
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
+        time_to_steer=0.2,
+        velocity=1.0,
     )
 
-    tree = Tree(vertices=[Vertex(position=start, parent=None, trajectory=[])])
+    tree = Tree(vertices=[Vertex(position=start, parent=None, trajectory=[], cost=0.0)])
 
     plt.figure()
     axes = plt.subplot()
