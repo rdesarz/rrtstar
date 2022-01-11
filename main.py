@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 from matplotlib.axes import Axes
 
-import pdb
 
 class Parameters(typing.NamedTuple):
     max_nb_iterations: int
@@ -248,26 +247,35 @@ def update(
 
     # Add new vertex to tree
     new_vertex = Vertex(
-        position=traj_to_new.path[-1], parent=None, trajectory=traj_to_new, cost=cost_to_new
+        position=traj_to_new.path[-1],
+        parent=None,
+        trajectory=traj_to_new,
+        cost=cost_to_new,
     )
-    tree.vertices.append(new_vertex)
 
     # Get all vertices near new vertex
     near_vertices = find_near_vertices(tree, new_vertex, expand_dist=0.1, near_dist=2.0)
+    # Add nearest by default to near vertices
+    near_vertices.append(nearest_vertex)
 
     # Find the most optimal parent for new vertex
     cost, optimal_vertex = find_optimal_parent(
         new_vertex, near_vertices, steering_policy, env.obstacles
     )
 
+    if not optimal_vertex:
+        cost = cost_to_new
+        optimal_vertex = nearest_vertex
+    else:
+        near_vertices.remove(optimal_vertex)
+
     # Connect new vertex with its parent
     new_vertex.parent = optimal_vertex
 
-    # Remove parent (optimal vertex) from near vertices
-    near_vertices.remove(optimal_vertex)
-
     # Rewire if required
     rewire(tree, new_vertex, near_vertices, steering_policy, env.obstacles)
+
+    tree.vertices.append(new_vertex)
 
     # Check if goal is reached
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
@@ -326,11 +334,11 @@ def main():
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=500,
+        max_nb_iterations=5000,
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
-        time_to_steer=0.2,
+        time_to_steer=0.05,
         velocity=1.0,
     )
 
