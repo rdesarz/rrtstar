@@ -118,6 +118,7 @@ def update_tree(
 
     # Connect new vertex with its parent
     new_vertex.parent = optimal_vertex
+    new_vertex.cost = cost
 
     # Rewire if required
     rewire(new_vertex, near_vertices, steering_policy, env.obstacles)
