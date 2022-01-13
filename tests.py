@@ -1,6 +1,8 @@
 import unittest
 
-from main import Point2d, Vertex, constant_speed_line_steering_policy
+from steering import constant_speed_line_steering_policy
+from rrt_star import Vertex
+from geometry import Point2d
 
 
 class MyTestCase(unittest.TestCase):
