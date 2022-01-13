@@ -130,7 +130,7 @@ def update_tree(
     tree.vertices.append(new_vertex)
 
     # Check if goal is reached
-    if np.linalg.norm(new_vertex.position.to_array() - goal) < params.expand_dist:
+    if np.linalg.norm(new_vertex.position.to_array() - goal) < params.goal_zone_radius:
         return True
 
     return False
