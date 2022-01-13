@@ -13,10 +13,8 @@ def constant_speed_line_steering_policy(
     norm_vec = np.linalg.norm(unit_vector)
     unit_vector = unit_vector / norm_vec
 
-    step = 0.05  # [s]
-    timesteps = np.arange(start=0.0, stop=time + step, step=step)
-
     # Steer to the destination
+    step = 0.05  # [s]
     path = []
     timesteps = []
     for timestep in np.arange(start=0.0, stop=time + step, step=step):

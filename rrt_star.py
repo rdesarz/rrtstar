@@ -55,13 +55,8 @@ def find_optimal_parent(
     return cost_min, vertex_min
 
 
-def rewire(
-        tree: Tree,
-        new_vertex: Vertex,
-        near_vertices: typing.List[Vertex],
-        steering_policy,
-        obstacles: typing.List[RectangleObstacle],
-):
+def rewire(new_vertex: Vertex, near_vertices: typing.List[Vertex], steering_policy,
+           obstacles: typing.List[RectangleObstacle]):
     for near_vertex in near_vertices:
         cost_to_near, traj_to_near = steering_policy(new_vertex, near_vertex.position)
         if (
@@ -125,7 +120,7 @@ def update_tree(
     new_vertex.parent = optimal_vertex
 
     # Rewire if required
-    rewire(tree, new_vertex, near_vertices, steering_policy, env.obstacles)
+    rewire(new_vertex, near_vertices, steering_policy, env.obstacles)
 
     tree.vertices.append(new_vertex)
 
