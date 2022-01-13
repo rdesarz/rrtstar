@@ -30,6 +30,7 @@ def constant_speed_line_steering_policy(
         else:
             path.append(dest)
             timesteps.append(timestep)
+            break
 
     # Generate trajectory. Time is equivalent to the steering input
     trajectory = Trajectory(path=path, steering_input=timesteps, time=timesteps[-1])

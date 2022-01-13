@@ -39,20 +39,22 @@ def find_optimal_parent(
         near_vertices: typing.List[Vertex],
         steering_policy,
         obstacles: typing.List[RectangleObstacle],
-) -> typing.Tuple[float, typing.Optional[Vertex]]:
+) -> typing.Tuple[float, typing.Optional[Vertex], Trajectory]:
     cost_min = sys.float_info.max
     vertex_min = None
+    traj_to_min = None
     for near_vertex in near_vertices:
         cost_to_new, traj_to_new = steering_policy(near_vertex, new_vertex.position)
         if (
                 not collides(trajectory=traj_to_new, obstacles=obstacles)
-                and traj_to_new.path[-1] == near_vertex.position
+                and traj_to_new.path[-1] == new_vertex.position
         ):
             if near_vertex.cost + cost_to_new < cost_min:
                 cost_min = near_vertex.cost + cost_to_new
                 vertex_min = near_vertex
+                traj_to_min = traj_to_new
 
-    return cost_min, vertex_min
+    return cost_min, vertex_min, traj_to_min
 
 
 def rewire(new_vertex: Vertex, near_vertices: typing.List[Vertex], steering_policy,
@@ -96,23 +98,22 @@ def update_tree(
     new_vertex = Vertex(
         position=traj_to_new.path[-1],
         parent=None,
-        trajectory=traj_to_new,
+        traj_to_vertex=traj_to_new,
         cost=cost_to_new,
     )
 
     # Get all vertices near new vertex
     near_vertices = find_near_vertices(tree, new_vertex, near_dist=2.0)
-    # Add nearest by default to near vertices
-    near_vertices.append(nearest_vertex)
 
     # Find the most optimal parent for new vertex
-    cost, optimal_vertex = find_optimal_parent(
+    cost, optimal_vertex, traj = find_optimal_parent(
         new_vertex, near_vertices, steering_policy, env.obstacles
     )
 
     if not optimal_vertex:
         cost = cost_to_new
         optimal_vertex = nearest_vertex
+        traj = traj_to_new
     else:
         near_vertices.remove(optimal_vertex)
 
@@ -128,6 +129,6 @@ def update_tree(
 
     # Check if goal is reached
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.goal_zone_radius:
-        return True
+        return False
 
     return False
