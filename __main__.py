@@ -27,7 +27,7 @@ def main():
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
-        time_to_steer=2.0,
+        time_to_steer=0.2,
         velocity=1.0,
         goal_zone_radius=0.05
     )

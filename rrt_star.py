@@ -103,24 +103,24 @@ def update_tree(
     )
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, near_dist=2.0)
+    near_vertices = find_near_vertices(tree, new_vertex, near_dist=4.0)
 
     # Find the most optimal parent for new vertex
-    cost, optimal_vertex, traj = find_optimal_parent(
+    optimal_cost, optimal_vertex, optimal_traj = find_optimal_parent(
         new_vertex, near_vertices, steering_policy, env.obstacles
     )
 
     if not optimal_vertex:
-        cost = cost_to_new
+        optimal_cost = cost_to_new
         optimal_vertex = nearest_vertex
-        traj = traj_to_new
+        optimal_traj = traj_to_new
     else:
         near_vertices.remove(optimal_vertex)
 
     # Connect new vertex with its parent
     new_vertex.parent = optimal_vertex
-    new_vertex.cost = cost
-    new_vertex.traj_to_vertex = traj
+    new_vertex.cost = optimal_cost
+    new_vertex.traj_to_vertex = optimal_traj
 
     # Rewire if required
     rewire(new_vertex, near_vertices, steering_policy, env.obstacles)
