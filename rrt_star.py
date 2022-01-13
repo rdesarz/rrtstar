@@ -12,7 +12,7 @@ from geometry import Point2d, RectangleObstacle, Trajectory, collides
 @dataclass
 class Vertex:
     position: Point2d
-    trajectory: Trajectory
+    traj_to_vertex: Trajectory
     parent: typing.Optional["Vertex"] = None
     cost: float = 0.0
 
@@ -119,6 +119,7 @@ def update_tree(
     # Connect new vertex with its parent
     new_vertex.parent = optimal_vertex
     new_vertex.cost = cost
+    new_vertex.traj_to_vertex = traj
 
     # Rewire if required
     rewire(new_vertex, near_vertices, steering_policy, env.obstacles)

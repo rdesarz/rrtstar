@@ -21,8 +21,8 @@ def update_plot(
     for vertex in tree.vertices:
         if vertex.parent:
             plt.plot(
-                [point.x for point in vertex.trajectory.path],
-                [point.y for point in vertex.trajectory.path],
+                [point.x for point in vertex.traj_to_vertex.path],
+                [point.y for point in vertex.traj_to_vertex.path],
                 "b-",
             )
             plt.plot(vertex.position.x, vertex.position.y, "*b")
@@ -30,8 +30,8 @@ def update_plot(
     current = tree.vertices[-1]
     while current.parent:
         plt.plot(
-            [point.x for point in current.trajectory.path],
-            [point.y for point in current.trajectory.path],
+            [point.x for point in current.traj_to_vertex.path],
+            [point.y for point in current.traj_to_vertex.path],
             "r-",
         )
         plt.plot(current.position.x, current.position.y, "*r")

@@ -32,7 +32,7 @@ def main():
         goal_zone_radius=0.05
     )
 
-    tree = Tree(vertices=[Vertex(position=start, parent=None, trajectory=[], cost=0.0)])
+    tree = Tree(vertices=[Vertex(position=start, parent=None, traj_to_vertex=[], cost=0.0)])
 
     plt.figure()
     axes = plt.subplot()
