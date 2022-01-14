@@ -57,7 +57,14 @@ def find_optimal_parent(
     return cost_min, vertex_min, traj_to_min
 
 
-def rewire(new_vertex: Vertex, near_vertices: typing.List[Vertex], steering_policy,
+def propagate_cost_to_leaves(parent: Vertex, tree: Tree):
+    for vertex in tree.vertices:
+        if parent == vertex.parent:
+            vertex.cost = parent.cost + np.linalg.norm(parent.position.to_array() - vertex.position.to_array())
+            propagate_cost_to_leaves(vertex, tree)
+
+
+def rewire(tree: Tree, new_vertex: Vertex, near_vertices: typing.List[Vertex], steering_policy,
            obstacles: typing.List[RectangleObstacle]):
     for near_vertex in near_vertices:
         cost_to_near, traj_to_near = steering_policy(new_vertex, near_vertex.position)
@@ -68,6 +75,8 @@ def rewire(new_vertex: Vertex, near_vertices: typing.List[Vertex], steering_poli
         ):
             near_vertex.parent = new_vertex
             near_vertex.cost = new_vertex.cost + cost_to_near
+            near_vertex.traj_to_vertex = traj_to_near
+            propagate_cost_to_leaves(near_vertex, tree)
 
 
 def update_tree(
@@ -99,11 +108,11 @@ def update_tree(
         position=traj_to_new.path[-1],
         parent=None,
         traj_to_vertex=traj_to_new,
-        cost=cost_to_new,
+        cost=nearest_vertex.cost + cost_to_new,
     )
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, near_dist=4.0)
+    near_vertices = find_near_vertices(tree, new_vertex, near_dist=1.0)
 
     # Find the most optimal parent for new vertex
     optimal_cost, optimal_vertex, optimal_traj = find_optimal_parent(
@@ -111,7 +120,7 @@ def update_tree(
     )
 
     if not optimal_vertex:
-        optimal_cost = cost_to_new
+        optimal_cost = nearest_vertex.cost + cost_to_new
         optimal_vertex = nearest_vertex
         optimal_traj = traj_to_new
     else:
@@ -123,12 +132,13 @@ def update_tree(
     new_vertex.traj_to_vertex = optimal_traj
 
     # Rewire if required
-    rewire(new_vertex, near_vertices, steering_policy, env.obstacles)
+    rewire(tree, new_vertex, near_vertices, steering_policy, env.obstacles)
 
+    # Add new vertex to tree
     tree.vertices.append(new_vertex)
 
     # Check if goal is reached
     if np.linalg.norm(new_vertex.position.to_array() - goal) < params.goal_zone_radius:
-        return False
+        return True
 
     return False

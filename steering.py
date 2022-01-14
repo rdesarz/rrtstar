@@ -35,6 +35,6 @@ def constant_speed_line_steering_policy(
     # Generate trajectory. Time is equivalent to the steering input
     trajectory = Trajectory(path=path, steering_input=timesteps, time=timesteps[-1])
 
-    cost = start.cost + np.linalg.norm(path[-1].to_array() - path[0].to_array())
+    cost = np.linalg.norm(path[-1].to_array() - path[0].to_array())
 
     return cost, trajectory
