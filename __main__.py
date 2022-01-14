@@ -11,7 +11,7 @@ from steering import constant_speed_line_steering_policy
 
 def main():
     # Initialize environment
-    planification_zone = Zone2d(x_min=0.0, x_max=10.0, y_min=0.0, y_max=10.0)
+    planification_zone = Zone2d(x_min=-10.0, x_max=10.0, y_min=-10.0, y_max=10.0)
     obstacles = []
     environment = Environment(
         planification_zone=planification_zone, obstacles=obstacles
@@ -23,12 +23,12 @@ def main():
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=1000,
+        max_nb_iterations=2000,
         expand_dist=0.2,
         goal_sample_rate=20,
-        path_sampling_step=0.05,
-        time_to_steer=0.2,
-        velocity=1.0,
+        path_sampling_step=0.01,
+        time_to_steer=0.5,
+        velocity=3.0,
         goal_zone_radius=0.05,
         near_dist=4.0
     )
