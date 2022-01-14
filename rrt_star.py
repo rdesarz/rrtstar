@@ -112,7 +112,7 @@ def update_tree(
     )
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, near_dist=4.0)
+    near_vertices = find_near_vertices(tree, new_vertex, params.near_dist)
 
     # Find the most optimal parent for new vertex
     optimal_cost, optimal_vertex, optimal_traj = find_optimal_parent(

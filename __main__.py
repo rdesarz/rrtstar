@@ -29,7 +29,8 @@ def main():
         path_sampling_step=0.05,
         time_to_steer=0.2,
         velocity=1.0,
-        goal_zone_radius=0.05
+        goal_zone_radius=0.05,
+        near_dist=4.0
     )
 
     tree = Tree(vertices=[Vertex(position=start, parent=None, traj_to_vertex=None, cost=0.0)])

@@ -11,6 +11,7 @@ class Parameters(typing.NamedTuple):
     time_to_steer: float
     velocity: float
     goal_zone_radius: float
+    near_dist: float
 
 
 class Environment(typing.NamedTuple):
