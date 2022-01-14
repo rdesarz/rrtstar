@@ -22,9 +22,13 @@ class Tree:
     vertices: typing.List[Vertex]
 
 
-def find_near_vertices(tree: Tree, new_vertex: Vertex, near_dist: float) -> typing.List[Vertex]:
+def find_near_vertices(tree: Tree, new_vertex: Vertex, near_dist: float, reachable_dist: typing.Optional[float]) -> \
+        typing.List[Vertex]:
     n_vertices = len(tree.vertices)
     dist_range = near_dist * math.sqrt(math.log(n_vertices) / n_vertices)
+
+    if reachable_dist:
+        dist_range = min(reachable_dist, dist_range)
 
     return [
         vertex
@@ -112,13 +116,15 @@ def update_tree(
     )
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, params.near_dist)
+    near_vertices = find_near_vertices(tree, new_vertex, params.near_dist,
+                                       reachable_dist=params.velocity * params.time_to_steer)
 
     # Find the most optimal parent for new vertex
     optimal_cost, optimal_vertex, optimal_traj = find_optimal_parent(
         new_vertex, near_vertices, steering_policy, env.obstacles
     )
 
+    # If no optimal vertex is found, use the nearest one by default. If it is found, remove it
     if not optimal_vertex:
         optimal_cost = nearest_vertex.cost + cost_to_new
         optimal_vertex = nearest_vertex
