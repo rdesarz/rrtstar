@@ -59,7 +59,7 @@ def find_optimal_parent(
 
 def propagate_cost_to_leaves(parent: Vertex, tree: Tree):
     for vertex in tree.vertices:
-        if parent == vertex.parent:
+        if parent and vertex.parent and parent.position == vertex.parent.position:
             vertex.cost = parent.cost + np.linalg.norm(parent.position.to_array() - vertex.position.to_array())
             propagate_cost_to_leaves(vertex, tree)
 
@@ -112,7 +112,7 @@ def update_tree(
     )
 
     # Get all vertices near new vertex
-    near_vertices = find_near_vertices(tree, new_vertex, near_dist=1.0)
+    near_vertices = find_near_vertices(tree, new_vertex, near_dist=4.0)
 
     # Find the most optimal parent for new vertex
     optimal_cost, optimal_vertex, optimal_traj = find_optimal_parent(
