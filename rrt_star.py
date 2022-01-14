@@ -12,7 +12,7 @@ from geometry import Point2d, RectangleObstacle, Trajectory, collides
 @dataclass
 class Vertex:
     position: Point2d
-    traj_to_vertex: Trajectory
+    traj_to_vertex: typing.Optional[Trajectory]
     parent: typing.Optional["Vertex"] = None
     cost: float = 0.0
 
