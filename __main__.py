@@ -29,7 +29,6 @@ def main():
         path_sampling_step=0.05,
         time_to_steer=1.0,
         velocity=15.0,
-        goal_zone_radius=0.05,
         near_dist=10.0
     )
 

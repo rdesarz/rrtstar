@@ -10,8 +10,8 @@ class Parameters(typing.NamedTuple):
     path_sampling_step: float
     time_to_steer: float
     velocity: float
-    goal_zone_radius: float
     near_dist: float
+    goal_zone_radius: typing.Optional[float] = None
 
 
 class Environment(typing.NamedTuple):
