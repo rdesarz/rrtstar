@@ -18,19 +18,19 @@ def main():
     )
 
     # Set start and goal position
-    start = Point2d(x=5.0, y=5.0)
+    start = Point2d(x=0.0, y=0.0)
     goal = Point2d(x=8.0, y=6.0)
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=2000,
+        max_nb_iterations=10000,
         expand_dist=0.2,
         goal_sample_rate=20,
-        path_sampling_step=0.01,
-        time_to_steer=0.5,
-        velocity=3.0,
+        path_sampling_step=0.05,
+        time_to_steer=1.0,
+        velocity=15.0,
         goal_zone_radius=0.05,
-        near_dist=4.0
+        near_dist=10.0
     )
 
     tree = Tree(vertices=[Vertex(position=start, parent=None, traj_to_vertex=None, cost=0.0)])
