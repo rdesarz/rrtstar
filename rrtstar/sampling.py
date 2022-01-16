@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from geometry import Zone2d, Point2d
+from rrtstar.geometry import Zone2d, Point2d
 
 
 def generate_new_sample_uniform(planification_zone: Zone2d) -> Point2d:

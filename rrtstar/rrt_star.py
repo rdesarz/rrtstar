@@ -5,8 +5,8 @@ import typing
 import numpy as np
 from dataclasses import dataclass
 
-from params import Parameters, Environment
-from geometry import Point2d, RectangleObstacle, Trajectory, collides
+from rrtstar.params import Parameters, Environment
+from rrtstar.geometry import Point2d, RectangleObstacle, Trajectory, collides
 
 
 @dataclass

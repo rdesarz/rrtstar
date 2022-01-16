@@ -1,6 +1,6 @@
 import typing
 
-from geometry import Zone2d, RectangleObstacle
+from rrtstar.geometry import Zone2d, RectangleObstacle
 
 
 class Parameters(typing.NamedTuple):

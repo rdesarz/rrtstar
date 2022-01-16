@@ -1,12 +1,12 @@
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
-from geometry import Point2d, Zone2d, RectangleObstacle
-from nearest import compute_nearest_euclidian_distance
-from params import Parameters, Environment
-from plot import update_plot
-from rrt_star import update_tree, Vertex, Tree
-from sampling import generate_new_sample_uniform
-from steering import constant_speed_line_steering_policy
+from rrtstar.geometry import Zone2d, Point2d
+from rrtstar.nearest import compute_nearest_euclidian_distance
+from rrtstar.params import Environment, Parameters
+from rrtstar.plot import update_plot
+from rrtstar.rrt_star import Tree, Vertex, update_tree
+from rrtstar.sampling import generate_new_sample_uniform
+from rrtstar.steering import constant_speed_line_steering_policy
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=10000,
+        max_nb_iterations=500,
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
@@ -65,7 +65,3 @@ def main():
     update_plot(environment, start, goal, tree, axes)
 
     plt.show()
-
-
-if __name__ == "__main__":
-    main()

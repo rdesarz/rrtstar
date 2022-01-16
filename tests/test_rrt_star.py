@@ -1,9 +1,9 @@
 import math
 import unittest
 
-from steering import constant_speed_line_steering_policy
-from rrt_star import Vertex, rewire
-from geometry import Point2d
+from rrtstar.steering import constant_speed_line_steering_policy
+from rrtstar.rrt_star import Vertex, rewire
+from rrtstar.geometry import Point2d
 
 
 class MyTestCase(unittest.TestCase):

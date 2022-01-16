@@ -2,8 +2,8 @@ import typing
 
 import numpy as np
 
-from geometry import Point2d, Trajectory
-from rrt_star import Vertex
+from rrtstar.geometry import Point2d, Trajectory
+from rrtstar.rrt_star import Vertex
 
 
 def constant_speed_line_steering_policy(

@@ -1,9 +1,9 @@
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from geometry import Point2d
-from params import Environment
-from rrt_star import Tree
+from rrtstar.geometry import Point2d
+from rrtstar.params import Environment
+from rrtstar.rrt_star import Tree
 
 
 def update_plot(
