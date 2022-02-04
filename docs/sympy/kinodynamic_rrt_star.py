@@ -1,14 +1,7 @@
-from pprint import pprint
-
-from sympy import MatrixSymbol, Matrix, BlockMatrix, Identity, ZeroMatrix, symbols, Inverse, Transpose, integrate, \
-    init_printing, latex, MatMul, simplify
+from sympy import MatrixSymbol, Matrix, symbols, Inverse, Transpose, integrate, \
+    init_printing, latex, simplify, solve, factor
 
 init_printing()
-
-
-def weighted_controllability_gramian(exp_A):
-    pass
-
 
 A = Matrix([[0, 0, 1, 0],
             [0, 0, 0, 1],
@@ -30,12 +23,6 @@ R = Matrix([[rho, 0],
             [0, rho]])
 
 print(latex(R))
-
-# A = MatrixSymbol('A', 4, 4)
-# B = MatrixSymbol('B', 4, 2)
-# R = MatrixSymbol('R', 2, 2)
-
-# weighted_controllability_gramian
 
 tau, t_prime = symbols('tau t_prime')
 
