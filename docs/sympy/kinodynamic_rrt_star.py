@@ -42,16 +42,41 @@ G_inv = G.inv()
 
 print(latex(simplify(G_inv)))
 
-x1 = MatrixSymbol('x1', 4, 1)
+x1_vec = MatrixSymbol('x1', 4, 1)
 x_bar = MatrixSymbol('x_bar', 4, 1)
 
 t = symbols('t')
 
-u = Inverse(R) * Transpose(B) * (Id + Transpose(A) * (tau - t)) * G_inv * (x1 - x_bar)
+u = Inverse(R) * Transpose(B) * (Id + Transpose(A) * (tau - t)) * G_inv * (x1_vec - x_bar)
 
 print(latex(simplify(u)))
 
-C_dot = 2 * Transpose(A * x1) * G_inv * (x1 - x_bar) - Transpose(x1 - x_bar) * Transpose(G_inv) * B * Inverse(
-    R) * Transpose(B) * G_inv * (x1 - x_bar)
+# Initial state vector
+x_start, y_start, v_x_start, v_y_start = symbols('x_start y_start v_x_start v_y_start')
+x_start_vec = Matrix([[x_start],
+                      [y_start],
+                      [v_x_start],
+                      [v_y_start]])
 
-# print(latex(simplify(C_dot)))
+# Final state vector
+x_end, y_end, v_x_end, v_y_end = symbols('x_end y_end v_x_end v_y_end')
+x_end_vec = Matrix([[x_end],
+                    [y_end],
+                    [v_x_end],
+                    [v_y_end]])
+
+# x_bar, state of the system without control input
+x_bar = (Id + A * tau) * x_start_vec
+
+print("x_bar: {}".format(latex(simplify(x_bar))))
+
+# derivative of cost
+c_dot = 2 * Transpose(A * x_end_vec) * G_inv * (x_end_vec - x_bar) - Transpose(x_end_vec - x_bar) * Transpose(
+    G_inv) * B * Inverse(
+    R) * Transpose(B) * G_inv * (x_end_vec - x_bar)
+
+print(latex(simplify(c_dot)))
+
+print(latex(solve(factor((c_dot * tau ** 4), tau, deep=True), tau)))
+
+
