@@ -93,7 +93,7 @@ def update_tree(
         nearest_policy: typing.Callable[[Point2d, Tree], Vertex],
         sample_generation_policy: typing.Callable[[], Point2d],
         tree: Tree,
-) -> bool:
+) -> typing.Optional[Vertex]:
     # Generate new sample
     new_sample: Point2d = sample_generation_policy()
 
@@ -105,7 +105,7 @@ def update_tree(
 
     # Check generated trajectory
     if collides(traj_to_new, env.obstacles):
-        return False
+        return None
 
     # Add new vertex to tree
     new_vertex = Vertex(
@@ -145,6 +145,6 @@ def update_tree(
 
     # Check if goal is reached only if a goal zone is defined
     if params.goal_zone_radius and np.linalg.norm(new_vertex.position.to_array() - goal) < params.goal_zone_radius:
-        return True
+        return new_vertex
 
-    return False
+    return None

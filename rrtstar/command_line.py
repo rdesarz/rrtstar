@@ -50,18 +50,21 @@ def main():
             environment.planification_zone
         )
 
+    node_to_goal = None
     for iteration in range(0, parameters.max_nb_iterations):
-        if update_tree(
-                environment,
-                parameters,
-                goal,
-                steering_policy,
-                nearest_policy,
-                sample_generation_policy,
-                tree,
-        ):
-            break
+        result = update_tree(
+            environment,
+            parameters,
+            goal,
+            steering_policy,
+            nearest_policy,
+            sample_generation_policy,
+            tree,
+        )
 
-    update_plot(environment, start, goal, tree, axes)
+        if result:
+            node_to_goal = result
+
+    update_plot(environment, parameters, start, goal, tree, axes, node_to_goal)
 
     plt.show()
