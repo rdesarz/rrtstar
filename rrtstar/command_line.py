@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 
-from rrtstar.geometry import Zone2d, Point2d
+from rrtstar.geometry import Zone2d, Point2d, RectangleObstacle
 from rrtstar.nearest import compute_nearest_euclidian_distance
 from rrtstar.params import Environment, Parameters
 from rrtstar.plot import update_plot
@@ -12,7 +13,7 @@ from rrtstar.steering import constant_speed_line_steering_policy
 def main():
     # Initialize environment
     planification_zone = Zone2d(x_min=-10.0, x_max=10.0, y_min=-10.0, y_max=10.0)
-    obstacles = []
+    obstacles = [RectangleObstacle(width=2.0, height=2.0, pos=Point2d(x=2.0, y=2.0))]
     environment = Environment(
         planification_zone=planification_zone, obstacles=obstacles
     )
@@ -23,19 +24,24 @@ def main():
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=500,
+        max_nb_iterations=5000,
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
         time_to_steer=1.0,
-        velocity=15.0,
-        near_dist=10.0
+        velocity=2.0,
+        near_dist=10.0,
+        goal_zone_radius=0.5
     )
 
     tree = Tree(vertices=[Vertex(position=start, parent=None, traj_to_vertex=None, cost=0.0)])
 
     plt.figure()
-    axes = plt.subplot()
+    axes: Axes = plt.subplot()
+    axes.set_xlabel("x [m]")
+    axes.set_ylabel("y [m]")
+    axes.grid(True)
+    axes.set_aspect('equal')
 
     def steering_policy(nearest, random):
         return constant_speed_line_steering_policy(
