@@ -24,7 +24,7 @@ def main():
 
     # Set parameters
     parameters = Parameters(
-        max_nb_iterations=5000,
+        max_nb_iterations=500,
         expand_dist=0.2,
         goal_sample_rate=20,
         path_sampling_step=0.05,
