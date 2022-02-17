@@ -10,14 +10,15 @@ This project allows to study the effect of the different parameters on the obtai
 
 Clone the repository
 
-  git clone 
+    git clone git@github.com:rdesarz/rrtstar.git
   
 Install the project using pip. You can use the -e option to edit the parameters of the algorithm
     
-  python3 -m pip install -e rrtstar
+    python3 -m pip install -e rrtstar
   
 Parameters can be changed in the `commande_line.py` file
 
 To run the planner, type the following command
 
-  rrtstar
+    rrtstar
+
